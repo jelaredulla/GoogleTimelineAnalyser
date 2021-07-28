@@ -42,3 +42,6 @@ It's tax time and you need to know how many hours you worked from home, huh? Exc
   Days in the office: <xx>
   Total time in the office: <hhh>:<mm>
   ```
+  
+  
+  Note: this script assumes you've tagged your office location as "Work" in your Google Maps profile. It filters the timeline activity data for "place visits" with semantic type "TYPE_WORK". If you have multiple offices / haven't tagged your place(s) of work as Work, you will need to tweak the script. I suggest modifying `get_office_days` to filter by address instead, for example. 
