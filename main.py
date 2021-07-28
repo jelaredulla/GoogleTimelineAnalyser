@@ -11,12 +11,24 @@ CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
 
 def validate_filepaths(filepaths):
+    """
+    Validates the given filepaths
+    
+    @param filepaths <list>: full paths to the files being validated
+    @throws ValueError if any of the filepaths is not a file
+    """
     for filepath in filepaths:
         if not os.path.isfile(filepath):
             raise ValueError('Filepath "{}" is invalid!'.format(filepath))
 
 
 def get_tax_months(tax_year):
+    """
+    Helper function to get the month+year for all the months of the given tax year
+    
+    @param tax_year <int>: the beginning year of the tax year, e.g. 2020 for the 2020-2021 tax year
+    @returns list of (year, month name) tuples for the twelve months of the given tax year
+    """
     tax_months = []
 
     for i in range(7, 13):
@@ -29,6 +41,12 @@ def get_tax_months(tax_year):
 
 
 def summarise(filepath):
+    """
+    Creates a summary for all the data in the specified file
+    
+    @param filepath: full path to a timeline JSON
+    @returns list of timeline activities, each summarised by START_DATE, START_TIME, END_DATE, END_TIME, DURATION, TIMELINE_CATEGORY, SEMANTIC_TYPE, ADDRESS
+    """
     summary_data = []
 
     with open(filepath, 'r') as opened_file:
@@ -91,6 +109,12 @@ def summarise(filepath):
 
 
 def get_office_days(year_summary):
+    """
+    Analyses summary data for days where semantic type TYPE_WORK was tagged, and returns a dataframe for duration at work for each day
+    
+    @param year_summary <pandas.DataFrame>: summary of timeline activities over the period of interest (nominally a full tax year)
+    @outputs pandas.DataFrame with the date YYYY-MM-DD and duration HH:MM spent in the office (or wherever was tagged as TYPE_WORK)
+    """
     days_at_office = []
 
     relevant_days = year_summary[year_summary['SEMANTIC_TYPE'] == 'TYPE_WORK']
@@ -115,6 +139,12 @@ def get_office_days(year_summary):
 
 
 def sum_duration(durations):
+    """
+    Helper function to sum time strings
+    
+    @param durations <list>: duration time strings in the format HH:MM
+    @returns the summation of the durations in the same format HH:MM
+    """
     total_minutes = 0
 
     for duration in durations:
@@ -135,7 +165,6 @@ if __name__ == '__main__':
     parser.add_argument('--tax_year', type=int, default=2020, help='Beginning tax year')
     args = parser.parse_args()
 
-    initials = 'AR'
     input_dir = args.input_dir
     output_dir = args.output_dir
     tax_year = args.tax_year
@@ -144,8 +173,10 @@ if __name__ == '__main__':
     print('Analysing timeline for the {} tax_year...'.format(tax_year))
     print('Summary data will be written to:', output_dir)
 
+    # Get the tax month / year combinations
     tax_months = get_tax_months(tax_year)
 
+    # Construct the relevant timeline JSON files based on the month / year combinations
     relevant_filepaths = []
     for tax_month in tax_months:
         year, month_name = tax_month
@@ -156,12 +187,15 @@ if __name__ == '__main__':
                                 '{}_{}.json'.format(year, month_name.upper()))
         relevant_filepaths.append(filepath)
 
+    # Validate the constructed filepaths actually exist
     validate_filepaths(relevant_filepaths)
 
+    # Create the output directory if it doesn't exist
     if not os.path.exists(output_dir):
         print('Output directory does not exist, so making it...')
         os.makedirs(output_dir)
 
+    # Parse each montht's timeline JSON and add it to the year summary
     year_summary = []
     for filepath in relevant_filepaths:
         print('Parsing file "{}"...'.format(os.path.basename(filepath)))
@@ -169,18 +203,22 @@ if __name__ == '__main__':
         month_summary = summarise(filepath)
         year_summary.extend(month_summary)
 
+    # Make a year summary dataframe and sort it chronologically
     year_summary = pandas.DataFrame(year_summary)
     year_summary.sort_values(by=['START_DATE', 'START_TIME'], inplace=True)
 
+    # Write the year summary to file, so maybe a human can sanity-check this intermediate step
     year_summary_filepath = os.path.join(output_dir, '{}-{}_location_summary.csv'.format(tax_year, tax_year + 1))
     year_summary.to_csv(year_summary_filepath, index=False)
 
+    # Get the days in office
     office_days = get_office_days(year_summary)
 
+    # Write the office days summary to file, so maybe a human can sanity-check it
     office_days_filepath = os.path.join(output_dir, '{}-{}_office_days.csv'.format(tax_year, tax_year + 1))
     office_days.to_csv(office_days_filepath, index=False)
 
-
+    # Print out the totals for number of days in office, and total time in the office
     print('\n\n')
     print('Days in the office:', len(office_days))
     print('Total time in the office:', sum_duration(list(office_days['DURATION'])))
