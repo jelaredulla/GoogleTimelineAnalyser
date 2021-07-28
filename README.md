@@ -10,6 +10,10 @@ It's tax time and you need to know how many hours you worked from home, huh? Exc
 5. Run the script to analyse your timeline data.
   In a command prompt window, navigate to the same directory as `main.py`:
   ```
+  cd <timeline_analyser_directory>
+  ```
+  e.g.
+  ```
   cd "C:\Users\<user.name>\Downloads\GoogleTimelineAnalyser"
   ```
   Then, run the main script using Python:
