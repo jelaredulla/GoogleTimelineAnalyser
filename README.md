@@ -4,9 +4,11 @@ It's tax time and you need to know how many hours you worked from home, huh? Exc
 
 1. Get your Google timeline data from Google. Go to https://timeline.google.com and click the gear icon for settings. Select the option "Download a copy of all your data", then follow the prompts to get your timeline.
 2. Install Python 3 from https://www.python.org/downloads/. Make sure to check the option "Add Python 3.x to PATH", or add it yourself after the installation.
-3. Download the script `main.py` from this repo. Consider double-checking that the source code is benign, and doesn't send your data to one of my secret servers. The other option is to blindly trust this script you found on the internet.
-4. Run the script to analyse your timeline data.
-  Open a command prompt window and navigate to the same directory as `main.py`:
+3. Use `pip` to install `pandas`, a required Python library that unfortunately isn't a Python 3 built-in. Open a command prompt window and type in:
+ ```pip install pandas```   
+4. Download the script `main.py` from this repo. Consider double-checking that the source code is benign, and doesn't send your data to one of my secret servers. The other option is to blindly trust this script you found on the internet.
+5. Run the script to analyse your timeline data.
+  In a command prompt window, navigate to the same directory as `main.py`:
   ```
   cd "C:\Users\<user.name>\Downloads\GoogleTimelineAnalyser"
   ```
