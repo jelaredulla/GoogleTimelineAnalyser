@@ -8,7 +8,7 @@ It's tax time and you need to know how many hours you worked from home, huh? Exc
 
 Open a command prompt window and navigate to the same directory as `main.py`:
 ```
-cd C:\Users\<user.name>\Downloads\GoogleTimelineAnalyser
+cd "C:\Users\<user.name>\Downloads\GoogleTimelineAnalyser"
 ```
 Then, run the main script using Python:
 ```
