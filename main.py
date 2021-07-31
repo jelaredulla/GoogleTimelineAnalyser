@@ -10,22 +10,10 @@ import pandas
 CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
 
-def validate_filepaths(filepaths):
-    """
-    Validates the given filepaths
-    
-    @param filepaths <list>: full paths to the files being validated
-    @throws ValueError if any of the filepaths is not a file
-    """
-    for filepath in filepaths:
-        if not os.path.isfile(filepath):
-            raise ValueError('Filepath "{}" is invalid!'.format(filepath))
-
-
 def get_tax_months(tax_year):
     """
     Helper function to get the month+year for all the months of the given tax year
-    
+
     @param tax_year <int>: the beginning year of the tax year, e.g. 2020 for the 2020-2021 tax year
     @returns list of (year, month name) tuples for the twelve months of the given tax year
     """
@@ -43,7 +31,7 @@ def get_tax_months(tax_year):
 def summarise(filepath):
     """
     Creates a summary for all the data in the specified file
-    
+
     @param filepath: full path to a timeline JSON
     @returns list of timeline activities, each summarised by START_DATE, START_TIME, END_DATE, END_TIME, DURATION, TIMELINE_CATEGORY, SEMANTIC_TYPE, ADDRESS
     """
@@ -111,7 +99,7 @@ def summarise(filepath):
 def get_office_days(year_summary):
     """
     Analyses summary data for days where semantic type TYPE_WORK was tagged, and returns a dataframe for duration at work for each day
-    
+
     @param year_summary <pandas.DataFrame>: summary of timeline activities over the period of interest (nominally a full tax year)
     @outputs pandas.DataFrame with the date YYYY-MM-DD and duration HH:MM spent in the office (or wherever was tagged as TYPE_WORK)
     """
@@ -141,7 +129,7 @@ def get_office_days(year_summary):
 def sum_duration(durations):
     """
     Helper function to sum time strings
-    
+
     @param durations <list>: duration time strings in the format HH:MM
     @returns the summation of the durations in the same format HH:MM
     """
@@ -161,17 +149,22 @@ def sum_duration(durations):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Analyse your Google timeline to find the time you spent at the office')
     parser.add_argument('input_dir', help='Directory containing your Google Maps timeline data')
-    parser.add_argument('--output_dir', default=os.path.join(CURRENT_DIRECTORY, 'output'), help='Directory to write the output')
+    parser.add_argument('--output_dir', default=os.path.join(CURRENT_DIRECTORY, 'GoogleTimelineAnalyser Output'), help='Directory to write the output')
     parser.add_argument('--tax_year', type=int, default=2020, help='Beginning tax year')
     args = parser.parse_args()
 
-    input_dir = args.input_dir
+    input_dir = args.input_dir.rstrip('\\/')
     output_dir = args.output_dir
     tax_year = args.tax_year
 
-    print('Google timeline data is in:', input_dir)
-    print('Analysing timeline for the {} tax_year...'.format(tax_year))
-    print('Summary data will be written to:', output_dir)
+    print('\nInput directory:', input_dir)
+    if os.path.basename(input_dir) != 'Semantic Location History':
+        print('\nPlease specify the full path to the "Semantic Location History" folder'
+              ' from your Google Takeout download; it should end with "\\Semantic Location History"')
+        exit(1)
+
+    print('\nAnalysing timeline for the {} tax_year...'.format(tax_year))
+    print('\nSummary data will be written to:', output_dir)
 
     # Get the tax month / year combinations
     tax_months = get_tax_months(tax_year)
@@ -181,27 +174,34 @@ if __name__ == '__main__':
     for tax_month in tax_months:
         year, month_name = tax_month
         filepath = os.path.join(input_dir,
-                                'Location History',
-                                'Semantic Location History',
                                 str(year),
                                 '{}_{}.json'.format(year, month_name.upper()))
         relevant_filepaths.append(filepath)
 
-    # Validate the constructed filepaths actually exist
-    validate_filepaths(relevant_filepaths)
-
     # Create the output directory if it doesn't exist
     if not os.path.exists(output_dir):
-        print('Output directory does not exist, so making it...')
+        print('\nOutput directory does not exist, so making it...')
         os.makedirs(output_dir)
+
+    print()
 
     # Parse each montht's timeline JSON and add it to the year summary
     year_summary = []
     for filepath in relevant_filepaths:
-        print('Parsing file "{}"...'.format(os.path.basename(filepath)))
+        print('Attempting to parse file "{}"'.format(os.path.basename(filepath)), end='')
 
-        month_summary = summarise(filepath)
-        year_summary.extend(month_summary)
+        # Check whether the constructed filepath actually exists
+        if os.path.isfile(filepath):
+            print(' - file exists so parsing it...')
+            month_summary = summarise(filepath)
+            year_summary.extend(month_summary)
+        else:
+            print('- not found.')
+
+    # Check that the summary isn't empty
+    if len(year_summary) == 0:
+        print('\nCould not find any activities to summarise')
+        exit(1)
 
     # Make a year summary dataframe and sort it chronologically
     year_summary = pandas.DataFrame(year_summary)
@@ -219,6 +219,6 @@ if __name__ == '__main__':
     office_days.to_csv(office_days_filepath, index=False)
 
     # Print out the totals for number of days in office, and total time in the office
-    print('\n\n')
+    print()
     print('Days in the office:', len(office_days))
     print('Total time in the office:', sum_duration(list(office_days['DURATION'])))
