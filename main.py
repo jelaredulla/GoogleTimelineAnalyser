@@ -171,16 +171,13 @@ def analyze_location_during_work_hours(
 def guess_work_location_per_day(work_hours_location_analysis):
     work_locations = []
     for _, date_data in work_hours_location_analysis.iterrows():
-        office_hours = date_data[WORK]
-        wfh_hours = date_data[HOME]
+        hours_spent = [(location, date_data[location]) for location in [HOME, WORK, UNKNOWN]]
+        sorted_hours_spent = sorted(hours_spent, key=lambda x: x[1], reverse=True)
 
-        work_location = UNKNOWN
-        if not office_hours and not wfh_hours:
-            pass
-        elif office_hours >= wfh_hours:
-            work_location = WORK
-        elif wfh_hours > office_hours:
-            work_location = HOME
+        if sorted_hours_spent[0][1] == 0:
+            work_location = UNKNOWN
+        else:
+            work_location = sorted_hours_spent[0][0]
 
         work_locations.append(work_location)
 
