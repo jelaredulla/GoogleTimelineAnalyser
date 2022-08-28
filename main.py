@@ -15,6 +15,7 @@ CURRENT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
 HOME = 'home'
 WORK = 'the office'
+UNKNOWN = 'elsewhere'
 
 SEMANTIC_TYPE_HOME = 'TYPE_HOME'
 SEMANTIC_TYPE_WORK = 'TYPE_WORK'
@@ -81,7 +82,7 @@ def summarise(
             if address:
                 address = address.replace('\n', ', ')
 
-            address_type = ''
+            address_type = UNKNOWN
             if semantic_type == SEMANTIC_TYPE_HOME:
                 address_type = HOME
             elif semantic_type == SEMANTIC_TYPE_WORK:
@@ -90,10 +91,6 @@ def summarise(
                 address_type = HOME
             elif is_similar_address(address, work_substrings):
                 address_type = WORK
-            elif address:
-                address_type = address
-            else:
-                address_type = 'Unknown'
 
             activity_summary.update({
                 'SEMANTIC_TYPE': semantic_type,
@@ -132,7 +129,11 @@ def analyze_location_during_work_hours(
         activities = location_data[(location_data['END_DATETIME'] >= work_start_datetime)
                                   & (location_data['START_DATETIME'] <= work_end_datetime)]
 
-        work_day_summary = defaultdict(float)
+        work_day_summary = {
+            HOME: 0.0,
+            WORK: 0.0,
+            UNKNOWN: 0.0,
+        }
         if len(activities):
             for _, activity in activities.iterrows():
                 address_type = activity['ADDRESS_TYPE']
@@ -165,6 +166,25 @@ def analyze_location_during_work_hours(
     ordered_columns.extend(existing_columns)
 
     return result[ordered_columns], no_data_dates
+
+
+def guess_work_location_per_day(work_hours_location_analysis):
+    work_locations = []
+    for _, date_data in work_hours_location_analysis.iterrows():
+        office_hours = date_data[WORK]
+        wfh_hours = date_data[HOME]
+
+        work_location = UNKNOWN
+        if not office_hours and not wfh_hours:
+            pass
+        elif office_hours >= wfh_hours:
+            work_location = WORK
+        elif wfh_hours > office_hours:
+            work_location = HOME
+
+        work_locations.append(work_location)
+
+    return work_locations
 
 
 def prompt_for_substrings(address_type):
@@ -306,21 +326,26 @@ if __name__ == '__main__':
         work_end_time=work_end_time,
         tz_info=local_tz
     )
+    work_locations = guess_work_location_per_day(work_days_summary)
+    work_days_summary['Worked from'] = work_locations
 
     # Write the work days summary to file, so maybe a human can sanity-check it
     work_days_filepath = os.path.join(output_dir, '{}-{}_work_days.csv'.format(tax_year, tax_year + 1))
     work_days_summary.to_csv(work_days_filepath, index=False)
 
-    print('\nThere were {} work dates with no location data whatsoever'.format(no_data_dates))
+    print('There were {} work days in the {}-{} tax year'.format(len(work_dates), tax_year, tax_year+1))
+    print('There were {} work dates with no location data whatsoever'.format(no_data_dates))
 
-    # Hours in the office
-    office_hours = work_days_summary[WORK].sum()
-    print('Spent {:.2f} hours in the office'.format(office_hours))
+    # Days in the office
+    office_days = len(work_days_summary[work_days_summary['Worked from'] == WORK])
+    print('\nSpent {} days in the office'.format(office_days))
 
-    # Hours working from home
-    wfh_hours = work_days_summary[HOME].sum()
-    print('Spent {:.2f} hours at home during working hours'.format(wfh_hours))
-    shortcut_rate = 0.8
-    shortcut_method = shortcut_rate * wfh_hours
-    print('${:.2f} * {:.2f} = {:.2f}'.format(shortcut_rate, wfh_hours, shortcut_method))
-    print('So you can claim approximately ${:.2f} for working from home'.format(shortcut_method))
+    # Days working from home
+    wfh_days = len(work_days_summary[work_days_summary['Worked from'] == HOME])
+    print('Spent {} days at home on working days'.format(wfh_days))
+
+    # Days at an unknown location
+    unknown_days = len(work_days_summary[work_days_summary['Worked from'] == UNKNOWN])
+    print('Spent {} days elsewhere on working days'.format(unknown_days))
+
+    print('\nNOTE: this does not take into account public holidays or your days on leave')

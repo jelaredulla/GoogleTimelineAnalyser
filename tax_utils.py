@@ -32,6 +32,4 @@ def get_work_dates(tax_year):
 
         date = date + datetime.timedelta(days=1)
 
-    print('There were {} work days in the {}-{} tax year'.format(len(dates), tax_year, tax_year+1))
-
     return dates

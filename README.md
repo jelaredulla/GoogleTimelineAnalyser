@@ -67,10 +67,11 @@ It's tax time and you need to know how many hours you worked from home, huh? Exc
   Attempting to parse file "2022_JUNE.json" (full path is "C:\Users\jelar\Downloads\takeout-20220821T020506Z-001\Takeout\Location History\Semantic Location History\2022\2022_JUNE.json")    - not found.
 
   There were 261 work days in the 2021-2022 tax year
-
   There were <xx> work dates with no location data whatsoever
-  Spent <xxx> hours in the office
-  Spent <xxx> hours at home during working hours
-  $0.80 * <xxx> = <xxxx>
-  So you can claim approximately $<xxxx> for working from home
+
+  Spent <xxx> days in the office
+  Spent <xxx> days at home on working days
+  Spent <xxx> days elsewhere on working days
+
+  NOTE: this does not take into account public holidays or your days on leave
   ```
